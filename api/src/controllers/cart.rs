@@ -11,7 +11,9 @@ use errors::BigNeonError;
 use extractors::*;
 use helpers::application;
 use itertools::Itertools;
+use payments::AuthThenCompletePaymentBehavior;
 use payments::PaymentProcessor;
+use payments::PaymentProcessorBehavior;
 use server::AppState;
 use std::collections::HashMap;
 use utils::ServiceLocator;
@@ -496,7 +498,13 @@ fn checkout_payment_processor(
                 .optional()?
             {
                 Some(payment_method) => {
-                    let client_response = client.update_repeat_token(
+                    let behavior = match client.behavior() {
+                        PaymentProcessorBehavior::AuthThenComplete(b) => b,
+                        _ =>  return application::unprocessable(
+                            "Could not complete this cart using saved payment methods is not supported for this payment processor",
+                        )
+                    };
+                    let client_response = behavior.update_repeat_token(
                         &payment_method.provider,
                         token,
                         "Big Neon something",
@@ -513,8 +521,14 @@ fn checkout_payment_processor(
                     payment_method.provider
                 }
                 None => {
+                    let behavior = match client.behavior() {
+                        PaymentProcessorBehavior::AuthThenComplete(b) => b,
+                        _ =>  return application::unprocessable(
+                            "Could not complete this cart using saved payment methods is not supported for this payment processor",
+                        )
+                    };
                     let repeat_token =
-                        client.create_token_for_repeat_charges(token, "Big Neon something")?;
+                        behavior.create_token_for_repeat_charges(token, "Big Neon")?;
                     let _payment_method = PaymentMethod::create(
                         auth_user.id(),
                         provider_name.to_string(),
@@ -531,12 +545,31 @@ fn checkout_payment_processor(
         }
     };
 
+    match client.behavior() {
+        PaymentProcessorBehavior::AuthThenComplete(behavior) => auth_then_complete(
+            &*behavior, token, req, currency, order, auth_user, conn, &*client,
+        ),
+        PaymentProcessorBehavior::RedirectToPaymentPage => redirect_to_payment_page(),
+    }
+}
+
+fn auth_then_complete(
+    client: &AuthThenCompletePaymentBehavior,
+    token: String,
+    req: &CheckoutCartRequest,
+    currency: &str,
+    order: &mut Order,
+    auth_user: &User,
+    conn: &Connection,
+    payment_processor: &PaymentProcessor,
+) -> Result<HttpResponse, BigNeonError> {
+    let connection = conn.get();
     info!("CART: Auth'ing to payment provider");
     let auth_result = client.auth(
         &token,
         req.amount,
         currency,
-        "Tickets from Bigneon",
+        &format!("Big Neon"),
         vec![("order_id".to_string(), order.id.to_string())],
     )?;
 
@@ -544,7 +577,7 @@ fn checkout_payment_processor(
     let payment = match order.add_credit_card_payment(
         auth_user.id(),
         req.amount,
-        provider_name.to_string(),
+        client.name(),
         auth_result.id.clone(),
         PaymentStatus::Authorized,
         auth_result.to_json()?,
@@ -552,7 +585,7 @@ fn checkout_payment_processor(
     ) {
         Ok(p) => p,
         Err(e) => {
-            client.refund(&auth_result.id)?;
+            payment_processor.refund(&auth_result.id)?;
             return Err(e.into());
         }
     };
@@ -570,8 +603,12 @@ fn checkout_payment_processor(
             Ok(HttpResponse::Ok().json(json!(order.for_display(connection)?)))
         }
         Err(e) => {
-            client.refund(&auth_result.id)?;
+            payment_processor.refund(&auth_result.id)?;
             Err(e.into())
         }
     }
+}
+
+fn redirect_to_payment_page() -> Result<HttpResponse, BigNeonError> {
+    Ok(HttpResponse::Ok().json(json!({"redirect_to": "http://google.com"})))
 }

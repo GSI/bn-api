@@ -4,6 +4,7 @@ use Customer;
 use RefundResult;
 use StripeError;
 
+#[derive(Clone)]
 pub struct StripeClient {
     api_key: String,
 }

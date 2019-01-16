@@ -1,6 +1,6 @@
 {
 	"info": {
-		"_postman_id": "645917a5-6621-4b6a-8bf3-43cae2268980",
+		"_postman_id": "85e1b53c-2f2f-4bd0-8d27-fa8fed98a324",
 		"name": "bigneon-tests",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
 	},
@@ -7506,7 +7506,7 @@
 			]
 		},
 		{
-			"name": "Buy Tickets",
+			"name": "Buy Tickets - Setup",
 			"item": [
 				{
 					"name": "Guest - search for event - Past",
@@ -8803,6 +8803,289 @@
 					"response": []
 				},
 				{
+					"name": "User - checkout",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "ecf814e4-aad0-4e95-9a7c-7e0f6ff4f53b",
+								"exec": [
+									"pm.test(\"should be 200\", function() {",
+									"    pm.response.to.have.status(200);",
+									"})",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{user_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n\t\"amount\": 12140,\n\t\"method\": {\n\t\t\"type\" : \"Card\",\n\t\t\"provider\": \"stripe\",\n\t\t\"token\" : \"{{last_credit_card_token}}\",\n\t\t\"save_payment_method\": false,\n\t\t\"set_default\": true\n\t}\n}"
+						},
+						"url": {
+							"raw": "http://{{server}}/cart/checkout",
+							"protocol": "http",
+							"host": [
+								"{{server}}"
+							],
+							"path": [
+								"cart",
+								"checkout"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Buy Tickets - Stripe",
+			"item": [
+				{
+					"name": "User - clear cart",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "aadca825-5dbc-4d09-8fb8-6b9d7cbe9350",
+								"exec": [
+									"pm.test(\"should be 200\", function() {",
+									"    pm.response.to.have.status(200);",
+									"})",
+									"",
+									"let json = JSON.parse(responseBody);",
+									"",
+									"pm.test(\"tickets should no longer be present\", function(){",
+									"    pm.expect(json.items.length).to.equal(0);",
+									"});",
+									"",
+									"pm.test(\"total should be correct\", function() {",
+									"    pm.expect(json.total_in_cents).to.equal(0);",
+									"})",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{user_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": ""
+						},
+						"url": {
+							"raw": "http://{{server}}/cart",
+							"protocol": "http",
+							"host": [
+								"{{server}}"
+							],
+							"path": [
+								"cart"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "User - replace cart",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "aadca825-5dbc-4d09-8fb8-6b9d7cbe9350",
+								"exec": [
+									"pm.test(\"should be 200\", function() {",
+									"    pm.response.to.have.status(200);",
+									"})",
+									"",
+									"let json = JSON.parse(responseBody);",
+									"",
+									"pm.environment.set(\"last_cart_id\", json.cart_id);",
+									"",
+									"pm.test(\"tickets should be present\", function(){",
+									"    pm.expect(json.items[0].item_type).to.equal(\"Tickets\");",
+									"    pm.expect(json.items[0].quantity).to.equal(20);",
+									"    pm.expect(json.items[0].unit_price_in_cents).to.equal(3000);",
+									"    ",
+									"    pm.expect(json.items[0].ticket_type_id).to.equal(pm.environment.get(\"ga_ticket_type_id\"));",
+									"});",
+									"",
+									"pm.test(\"fees should be present\", function(){",
+									"    pm.expect(json.items[1].item_type).to.equal(\"PerUnitFees\");",
+									"     pm.expect(json.items[1].quantity).to.equal(20);",
+									"    pm.expect(json.items[1].unit_price_in_cents).to.equal(10);",
+									"});",
+									"",
+									"pm.test(\"fees should be present\", function(){",
+									"    pm.expect(json.items[2].item_type).to.equal(\"EventFees\");",
+									"    ",
+									"    pm.expect(json.items[2].unit_price_in_cents).to.equal(100);",
+									"});",
+									"",
+									"pm.test(\"total should be correct\", function() {",
+									"    pm.expect(json.total_in_cents).to.equal(60300);",
+									"})",
+									"",
+									"pm.test(\"should report 30 remaining tickets available\", function() {",
+									"    pm.expect(json.limited_tickets_remaining[0].tickets_remaining).to.equal(30);",
+									"});",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{user_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n\"items\": [{\n\"ticket_type_id\": \"{{ga_ticket_type_id}}\",\n\"quantity\":20\n}]}"
+						},
+						"url": {
+							"raw": "http://{{server}}/cart",
+							"protocol": "http",
+							"host": [
+								"{{server}}"
+							],
+							"path": [
+								"cart"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "User - view cart",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "069abb66-557c-4d17-855e-bfc510703605",
+								"exec": [
+									"pm.test(\"should be 200\", function() {",
+									"    pm.response.to.have.status(200);",
+									"})",
+									"",
+									"let json = JSON.parse(responseBody);",
+									"",
+									"",
+									"pm.test(\"tickets should be present\", function(){",
+									"    pm.expect(json.items[0].item_type).to.equal(\"Tickets\");",
+									"    pm.expect(json.items[0].quantity).to.equal(1);",
+									"    pm.expect(json.items[0].unit_price_in_cents).to.equal(3000);",
+									"",
+									"    ",
+									"});",
+									"",
+									"pm.test(\"fees should be present\", function(){",
+									"    pm.expect(json.items[1].item_type).to.equal(\"PerUnitFees\");",
+									"    pm.expect(json.items[0].quantity).to.equal(1);",
+									"    pm.expect(json.items[1].unit_price_in_cents).to.equal(10);",
+									"});",
+									"",
+									"pm.test(\"fees should be present\", function(){",
+									"    pm.expect(json.items[2].item_type).to.equal(\"EventFees\");",
+									"    ",
+									"    pm.expect(json.items[2].unit_price_in_cents).to.equal(100);",
+									"});",
+									"",
+									"pm.test(\"total should be correct\", function() {",
+									"    pm.expect(json.total_in_cents).to.equal(3110);",
+									"})",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{user_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": ""
+						},
+						"url": {
+							"raw": "http://{{server}}/cart",
+							"protocol": "http",
+							"host": [
+								"{{server}}"
+							],
+							"path": [
+								"cart"
+							]
+						}
+					},
+					"response": []
+				},
+				{
 					"name": "Do STRIPE form post",
 					"event": [
 						{
@@ -8992,6 +9275,401 @@
 						"body": {
 							"mode": "raw",
 							"raw": "{\n\t\"amount\": 12140,\n\t\"method\": {\n\t\t\"type\" : \"Card\",\n\t\t\"provider\": \"stripe\",\n\t\t\"token\" : \"{{last_credit_card_token}}\",\n\t\t\"save_payment_method\": false,\n\t\t\"set_default\": true\n\t}\n}"
+						},
+						"url": {
+							"raw": "http://{{server}}/cart/checkout",
+							"protocol": "http",
+							"host": [
+								"{{server}}"
+							],
+							"path": [
+								"cart",
+								"checkout"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "User - cart should be empty",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "48bb30ba-f012-42c1-80c6-222f316c08b7",
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"should be 200\", function() {",
+									"    pm.response.to.have.status(200);",
+									"})",
+									"",
+									"let json = JSON.parse(responseBody);",
+									"",
+									"pm.test(\"should have no items\", function(){",
+									"    pm.expect(json.items).to.be.undefined;",
+									"   ",
+									"});"
+								]
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{user_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": ""
+						},
+						"url": {
+							"raw": "http://{{server}}/cart",
+							"protocol": "http",
+							"host": [
+								"{{server}}"
+							],
+							"path": [
+								"cart"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "User - get tickets for event",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "6231a347-7d0d-4e52-9df5-3e0dd47eb022",
+								"exec": [
+									"pm.test(\"should be 200\", function() {",
+									"    pm.response.to.have.status(200);",
+									"})",
+									"",
+									"let json = JSON.parse(responseBody);",
+									"",
+									"pm.test(\"1 ticket should be present\", function(){",
+									"    pm.expect(json.data.length).to.equal(1);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{user_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": ""
+						},
+						"url": {
+							"raw": "http://{{server}}/events/{{last_event_id}}/tickets",
+							"protocol": "http",
+							"host": [
+								"{{server}}"
+							],
+							"path": [
+								"events",
+								"{{last_event_id}}",
+								"tickets"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Buy Tickets - Globee",
+			"item": [
+				{
+					"name": "User - clear cart",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "aadca825-5dbc-4d09-8fb8-6b9d7cbe9350",
+								"exec": [
+									"pm.test(\"should be 200\", function() {",
+									"    pm.response.to.have.status(200);",
+									"})",
+									"",
+									"let json = JSON.parse(responseBody);",
+									"",
+									"pm.test(\"tickets should no longer be present\", function(){",
+									"    pm.expect(json.items.length).to.equal(0);",
+									"});",
+									"",
+									"pm.test(\"total should be correct\", function() {",
+									"    pm.expect(json.total_in_cents).to.equal(0);",
+									"})",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{user_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": ""
+						},
+						"url": {
+							"raw": "http://{{server}}/cart",
+							"protocol": "http",
+							"host": [
+								"{{server}}"
+							],
+							"path": [
+								"cart"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "User - replace cart",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "aadca825-5dbc-4d09-8fb8-6b9d7cbe9350",
+								"exec": [
+									"pm.test(\"should be 200\", function() {",
+									"    pm.response.to.have.status(200);",
+									"})",
+									"",
+									"let json = JSON.parse(responseBody);",
+									"",
+									"pm.environment.set(\"last_cart_id\", json.cart_id);",
+									"",
+									"pm.test(\"tickets should be present\", function(){",
+									"    pm.expect(json.items[0].item_type).to.equal(\"Tickets\");",
+									"    pm.expect(json.items[0].quantity).to.equal(20);",
+									"    pm.expect(json.items[0].unit_price_in_cents).to.equal(3000);",
+									"    ",
+									"    pm.expect(json.items[0].ticket_type_id).to.equal(pm.environment.get(\"ga_ticket_type_id\"));",
+									"});",
+									"",
+									"pm.test(\"fees should be present\", function(){",
+									"    pm.expect(json.items[1].item_type).to.equal(\"PerUnitFees\");",
+									"     pm.expect(json.items[1].quantity).to.equal(20);",
+									"    pm.expect(json.items[1].unit_price_in_cents).to.equal(10);",
+									"});",
+									"",
+									"pm.test(\"fees should be present\", function(){",
+									"    pm.expect(json.items[2].item_type).to.equal(\"EventFees\");",
+									"    ",
+									"    pm.expect(json.items[2].unit_price_in_cents).to.equal(100);",
+									"});",
+									"",
+									"pm.test(\"total should be correct\", function() {",
+									"    pm.expect(json.total_in_cents).to.equal(60300);",
+									"})",
+									"",
+									"pm.test(\"should report 30 remaining tickets available\", function() {",
+									"    pm.expect(json.limited_tickets_remaining[0].tickets_remaining).to.equal(30);",
+									"});",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{user_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n\"items\": [{\n\"ticket_type_id\": \"{{ga_ticket_type_id}}\",\n\"quantity\":20\n}]}"
+						},
+						"url": {
+							"raw": "http://{{server}}/cart",
+							"protocol": "http",
+							"host": [
+								"{{server}}"
+							],
+							"path": [
+								"cart"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "User - view cart",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "069abb66-557c-4d17-855e-bfc510703605",
+								"exec": [
+									"pm.test(\"should be 200\", function() {",
+									"    pm.response.to.have.status(200);",
+									"})",
+									"",
+									"let json = JSON.parse(responseBody);",
+									"",
+									"",
+									"pm.test(\"tickets should be present\", function(){",
+									"    pm.expect(json.items[0].item_type).to.equal(\"Tickets\");",
+									"    pm.expect(json.items[0].quantity).to.equal(1);",
+									"    pm.expect(json.items[0].unit_price_in_cents).to.equal(3000);",
+									"",
+									"    ",
+									"});",
+									"",
+									"pm.test(\"fees should be present\", function(){",
+									"    pm.expect(json.items[1].item_type).to.equal(\"PerUnitFees\");",
+									"    pm.expect(json.items[0].quantity).to.equal(1);",
+									"    pm.expect(json.items[1].unit_price_in_cents).to.equal(10);",
+									"});",
+									"",
+									"pm.test(\"fees should be present\", function(){",
+									"    pm.expect(json.items[2].item_type).to.equal(\"EventFees\");",
+									"    ",
+									"    pm.expect(json.items[2].unit_price_in_cents).to.equal(100);",
+									"});",
+									"",
+									"pm.test(\"total should be correct\", function() {",
+									"    pm.expect(json.total_in_cents).to.equal(3110);",
+									"})",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{user_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": ""
+						},
+						"url": {
+							"raw": "http://{{server}}/cart",
+							"protocol": "http",
+							"host": [
+								"{{server}}"
+							],
+							"path": [
+								"cart"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "User - checkout",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "ecf814e4-aad0-4e95-9a7c-7e0f6ff4f53b",
+								"exec": [
+									"pm.test(\"should be 200\", function() {",
+									"    pm.response.to.have.status(200);",
+									"})",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{user_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n\t\"amount\": 12140,\n\t\"method\": {\n\t\t\"type\" : \"Card\",\n\t\t\"provider\": \"globee\",\n\t\t\"token\" : \"{{last_credit_card_token}}\",\n\t\t\"save_payment_method\": false,\n\t\t\"set_default\": true\n\t}\n}"
 						},
 						"url": {
 							"raw": "http://{{server}}/cart/checkout",

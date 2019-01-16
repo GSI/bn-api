@@ -1,0 +1,12 @@
+[package]
+name = "globee"
+version = "0.1.0"
+authors = ["Mike Berry <mikethetike@tari.com>"]
+
+[dependencies]
+reqwest = "0.9"
+serde = "1.0"
+serde_json = "1.0"
+serde_derive = "1.0"
+url= "1.7.2"
+derive-error="0.0.4"

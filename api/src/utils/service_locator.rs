@@ -1,7 +1,7 @@
 use config::Config;
 use errors::*;
+use payments::stripe::StripePaymentProcessor;
 use payments::PaymentProcessor;
-use payments::StripePaymentProcessor;
 
 pub struct ServiceLocator {
     stripe_secret_key: String,
@@ -17,11 +17,11 @@ impl ServiceLocator {
     pub fn create_payment_processor(
         &self,
         provider_name: &str,
-    ) -> Result<impl PaymentProcessor, BigNeonError> {
+    ) -> Result<Box<PaymentProcessor>, BigNeonError> {
         match provider_name {
-            "stripe" => Ok(StripePaymentProcessor::new(
+            "stripe" => Ok(Box::new(StripePaymentProcessor::new(
                 self.stripe_secret_key.to_string(),
-            )),
+            ))),
             _ => return Err(ApplicationError::new("Unknown payment provider".into()).into()),
         }
     }
