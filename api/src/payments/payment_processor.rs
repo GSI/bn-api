@@ -3,6 +3,7 @@ use payments::charge_auth_result::ChargeAuthResult;
 use payments::charge_result::ChargeResult;
 use payments::payment_processor_error::PaymentProcessorError;
 use payments::repeat_charge_token::RepeatChargeToken;
+use uuid::Uuid;
 
 pub enum PaymentProcessorBehavior {
     AuthThenComplete(Box<AuthThenCompletePaymentBehavior>),
@@ -46,6 +47,8 @@ pub trait RedirectToPaymentPageBehavior {
         &self,
         total: f64,
         email: String,
+        payment_id: Uuid,
+        ipn_url: Option<String>,
     ) -> Result<RedirectInfo, PaymentProcessorError>;
 }
 

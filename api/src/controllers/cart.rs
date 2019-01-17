@@ -6,7 +6,9 @@ use bigneon_db::models::User as DbUser;
 use bigneon_db::models::*;
 use bigneon_db::utils::errors::Optional;
 use communications::mailers;
+use config::Config;
 use db::Connection;
+use diesel::pg::PgConnection;
 use errors::BigNeonError;
 use extractors::*;
 use helpers::application;
@@ -294,6 +296,7 @@ pub fn checkout(
                 false,
                 false,
                 &state.service_locator,
+                &state.config,
             )?
         }
         PaymentRequest::Card {
@@ -313,6 +316,7 @@ pub fn checkout(
             *save_payment_method,
             *set_default,
             &state.service_locator,
+            &state.config,
         )?,
     };
 
@@ -452,6 +456,7 @@ fn checkout_payment_processor(
     save_payment_method: bool,
     set_default: bool,
     service_locator: &ServiceLocator,
+    config: &Config,
 ) -> Result<HttpResponse, BigNeonError> {
     info!("CART: Executing provider payment");
     let connection = conn.get();
@@ -551,7 +556,7 @@ fn checkout_payment_processor(
             &*behavior, token, req, currency, order, auth_user, conn, &*client,
         ),
         PaymentProcessorBehavior::RedirectToPaymentPage(behavior) => {
-            redirect_to_payment_page(&*behavior, req, &auth_user.user)
+            redirect_to_payment_page(&*behavior, req, &auth_user.user, order, conn.get(), config)
         }
     }
 }
@@ -616,11 +621,22 @@ fn redirect_to_payment_page(
     client: &RedirectToPaymentPageBehavior,
     req: &CheckoutCartRequest,
     user: &DbUser,
+    order: &mut Order,
+    conn: &PgConnection,
+    config: &Config,
 ) -> Result<HttpResponse, BigNeonError> {
     if user.email.is_none() {
         return application::unprocessable("User must have an email to check out");
     }
+
+    let payment = order.add_pending_payment(user.id, req.amount, client.name(), None, conn)?;
+
     let email = user.email.as_ref().unwrap().to_string();
-    let response = client.create_payment_request(req.amount as f64 / 100_f64, email)?;
+    let response = client.create_payment_request(
+        req.amount as f64 / 100_f64,
+        email,
+        payment.id,
+        Some(format!("{}/ipns/globee", config.ipn_base_url)),
+    )?;
     Ok(HttpResponse::Ok().json(json!({"redirect_to": response.redirect_url})))
 }

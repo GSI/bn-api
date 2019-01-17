@@ -977,6 +977,27 @@ impl Order {
         self.add_payment(payment, current_user_id, conn)
     }
 
+    pub fn add_pending_payment(
+        &mut self,
+        current_user_id: Uuid,
+        amount: i64,
+        provider: String,
+        provider_data: Option<serde_json::Value>,
+        conn: &PgConnection,
+    ) -> Result<Payment, DatabaseError> {
+        let payment = Payment::create(
+            self.id,
+            current_user_id,
+            PaymentStatus::PendingCompletionAtGateway,
+            PaymentMethods::Provider,
+            provider,
+            None,
+            amount,
+            provider_data,
+        );
+        self.add_payment(payment, current_user_id, conn)
+    }
+
     fn add_payment(
         &mut self,
         payment: NewPayment,

@@ -7,6 +7,7 @@ use payments::payment_processor::RedirectInfo;
 use payments::payment_processor::RedirectToPaymentPageBehavior;
 use payments::payment_processor_error::PaymentProcessorError;
 use payments::repeat_charge_token::RepeatChargeToken;
+use uuid::Uuid;
 
 pub struct GlobeePaymentProcessor {
     api_key: String,
@@ -52,8 +53,11 @@ impl RedirectToPaymentPageBehavior for GlobeePaymentProcessorBehavior {
         &self,
         amount: f64,
         email: String,
+        payment_id: Uuid,
+        ipn_url: Option<String>,
     ) -> Result<RedirectInfo, PaymentProcessorError> {
-        let payment_request = PaymentRequest::new(amount, email);
+        let payment_request =
+            PaymentRequest::new(amount, email, Some(payment_id.to_string()), ipn_url);
         let result = self.client.create_payment_request(payment_request)?;
         Ok(RedirectInfo {
             id: result.id,

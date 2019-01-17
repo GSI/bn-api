@@ -9408,6 +9408,56 @@
 			"name": "Buy Tickets - Globee",
 			"item": [
 				{
+					"name": "Guest - login",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "d3677e01-0ed8-4cd2-9673-0e6dacae9a53",
+								"exec": [
+									"pm.test(\"should be 200\", function() {",
+									"    pm.response.to.have.status(200);",
+									"})",
+									"",
+									"let json = JSON.parse(responseBody);",
+									"",
+									"pm.environment.set(\"user_token\", json.access_token);",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n\t\"email\":\"{{last_email}}\", \"password\":\"itsasecret\"\n}"
+						},
+						"url": {
+							"raw": "http://{{server}}/auth/token",
+							"protocol": "http",
+							"host": [
+								"{{server}}"
+							],
+							"path": [
+								"auth",
+								"token"
+							]
+						}
+					},
+					"response": []
+				},
+				{
 					"name": "User - clear cart",
 					"event": [
 						{
@@ -9792,6 +9842,36 @@
 								"events",
 								"{{last_event_id}}",
 								"tickets"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Globee - IPN",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"name": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"id\": \"ZbWyAR2VwO4a3BYN063nJ7\",\n    \"status\": \"paid\",\n    \"total\": \"121.4\",\n    \"adjusted_total\": \"121.4\",\n    \"currency\": \"USD\",\n    \"custom_payment_id\": \"aec07f8d-f14b-4a05-ae47-eac11c11a82e\",\n    \"custom_store_reference\": null,\n    \"callback_data\": null,\n    \"customer\": {\n        \"name\": null,\n        \"email\": \"mike1547729521787@tari.com\"\n    },\n    \"payment_details\": {\n        \"currency\": \"BTC\",\n        \"received_amount\": \"121.4\",\n        \"received_difference\": \"0\"\n    },\n    \"redirect_url\": \"https://test.globee.com/payment-request/ZbWyAR2VwO4a3BYN063nJ7\",\n    \"success_url\": null,\n    \"cancel_url\": null,\n    \"ipn_url\": \"https://f7dac315.ngrok.io/ipns/globee\",\n    \"notification_email\": null,\n    \"confirmation_speed\": \"medium\",\n    \"expires_at\": \"2019-01-17 13:07:13\",\n    \"created_at\": \"2019-01-17 12:52:13\"\n}"
+						},
+						"url": {
+							"raw": "http://{{server}}/ipns/globee",
+							"protocol": "http",
+							"host": [
+								"{{server}}"
+							],
+							"path": [
+								"ipns",
+								"globee"
 							]
 						}
 					},

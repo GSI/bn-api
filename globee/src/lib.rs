@@ -132,11 +132,16 @@ pub struct PaymentRequest {
     pub custom_store_reference: Option<String>,
 }
 impl PaymentRequest {
-    pub fn new(total: f64, email: String) -> PaymentRequest {
+    pub fn new(
+        total: f64,
+        email: String,
+        custom_payment_id: Option<String>,
+        ipn_url: Option<String>,
+    ) -> PaymentRequest {
         PaymentRequest {
             total: total.to_string(),
             currency: None,
-            custom_payment_id: None,
+            custom_payment_id,
             callback_data: None,
             customer: Customer {
                 name: None,
@@ -144,7 +149,7 @@ impl PaymentRequest {
             },
             success_url: None,
             cancel_url: None,
-            ipn_url: None,
+            ipn_url,
             notification_email: None,
             confirmation_speed: None,
             custom_store_reference: None,
