@@ -1,3 +1,4 @@
+use bigneon_db::models::User;
 use payments::charge_auth_result::ChargeAuthResult;
 use payments::charge_result::ChargeResult;
 use payments::payment_processor_error::PaymentProcessorError;
@@ -5,7 +6,7 @@ use payments::repeat_charge_token::RepeatChargeToken;
 
 pub enum PaymentProcessorBehavior {
     AuthThenComplete(Box<AuthThenCompletePaymentBehavior>),
-    RedirectToPaymentPage,
+    RedirectToPaymentPage(Box<RedirectToPaymentPageBehavior>),
 }
 
 pub trait AuthThenCompletePaymentBehavior {
@@ -39,6 +40,15 @@ pub trait AuthThenCompletePaymentBehavior {
     ) -> Result<ChargeResult, PaymentProcessorError>;
 }
 
+pub trait RedirectToPaymentPageBehavior {
+    fn name(&self) -> String;
+    fn create_payment_request(
+        &self,
+        total: f64,
+        email: String,
+    ) -> Result<RedirectInfo, PaymentProcessorError>;
+}
+
 pub trait PaymentProcessor {
     fn behavior(&self) -> PaymentProcessorBehavior;
     fn refund(&self, auth_token: &str) -> Result<ChargeAuthResult, PaymentProcessorError>;
@@ -48,4 +58,9 @@ pub trait PaymentProcessor {
         auth_token: &str,
         amount: u32,
     ) -> Result<ChargeAuthResult, PaymentProcessorError>;
+}
+
+pub struct RedirectInfo {
+    pub redirect_url: String,
+    pub id: String,
 }

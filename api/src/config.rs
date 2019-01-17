@@ -22,6 +22,8 @@ pub struct Config {
     pub environment: Environment,
     pub facebook_app_id: Option<String>,
     pub facebook_app_secret: Option<String>,
+    pub globee_api_key: String,
+    pub globee_base_url: String,
     pub google_recaptcha_secret_key: Option<String>,
     pub http_keep_alive: usize,
     pub block_external_comms: bool,
@@ -56,6 +58,8 @@ const DATABASE_POOL_SIZE: &str = "DATABASE_POOL_SIZE";
 const DOMAIN: &str = "DOMAIN";
 const FACEBOOK_APP_ID: &str = "FACEBOOK_APP_ID";
 const FACEBOOK_APP_SECRET: &str = "FACEBOOK_APP_SECRET";
+const GLOBEE_API_KEY: &str = "GLOBEE_API_KEY";
+const GLOBEE_BASE_URL: &str = "GLOBEE_BASE_URL";
 const GOOGLE_RECAPTCHA_SECRET_KEY: &str = "GOOGLE_RECAPTCHA_SECRET_KEY";
 const PRIMARY_CURRENCY: &str = "PRIMARY_CURRENCY";
 const STRIPE_SECRET_KEY: &str = "STRIPE_SECRET_KEY";
@@ -149,6 +153,13 @@ impl Config {
             }
         };
 
+        let globee_api_key =
+            env::var(&GLOBEE_API_KEY).expect(&format!("{} must be defined", GLOBEE_API_KEY));
+        let globee_base_url = env::var(&GLOBEE_BASE_URL).unwrap_or_else(|_| match environment {
+            Environment::Production => "https://globee.com/payment-api/v1/".to_string(),
+            _ => "https://test.globee.com/payment-api/v1/".to_string(),
+        });
+
         let google_recaptcha_secret_key = env::var(&GOOGLE_RECAPTCHA_SECRET_KEY).ok();
 
         let communication_default_source_email = env::var(&COMMUNICATION_DEFAULT_SOURCE_EMAIL)
@@ -224,6 +235,8 @@ impl Config {
             environment,
             facebook_app_id,
             facebook_app_secret,
+            globee_api_key,
+            globee_base_url,
             google_recaptcha_secret_key,
             http_keep_alive,
             block_external_comms,

@@ -14,6 +14,7 @@ use itertools::Itertools;
 use payments::AuthThenCompletePaymentBehavior;
 use payments::PaymentProcessor;
 use payments::PaymentProcessorBehavior;
+use payments::RedirectToPaymentPageBehavior;
 use server::AppState;
 use std::collections::HashMap;
 use utils::ServiceLocator;
@@ -549,7 +550,9 @@ fn checkout_payment_processor(
         PaymentProcessorBehavior::AuthThenComplete(behavior) => auth_then_complete(
             &*behavior, token, req, currency, order, auth_user, conn, &*client,
         ),
-        PaymentProcessorBehavior::RedirectToPaymentPage => redirect_to_payment_page(),
+        PaymentProcessorBehavior::RedirectToPaymentPage(behavior) => {
+            redirect_to_payment_page(&*behavior, req, &auth_user.user)
+        }
     }
 }
 
@@ -609,6 +612,15 @@ fn auth_then_complete(
     }
 }
 
-fn redirect_to_payment_page() -> Result<HttpResponse, BigNeonError> {
-    Ok(HttpResponse::Ok().json(json!({"redirect_to": "http://google.com"})))
+fn redirect_to_payment_page(
+    client: &RedirectToPaymentPageBehavior,
+    req: &CheckoutCartRequest,
+    user: &DbUser,
+) -> Result<HttpResponse, BigNeonError> {
+    if user.email.is_none() {
+        return application::unprocessable("User must have an email to check out");
+    }
+    let email = user.email.as_ref().unwrap().to_string();
+    let response = client.create_payment_request(req.amount as f64 / 100_f64, email)?;
+    Ok(HttpResponse::Ok().json(json!({"redirect_to": response.redirect_url})))
 }

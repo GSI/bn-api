@@ -16,6 +16,7 @@ clap = "2.32"
 diesel = {version = "1.3", features = ["r2d2"]}
 dotenv = "0.13"
 futures = "0.1"
+globee={path="../globee"}
 itertools = "0.7"
 jsonwebtoken = "5"
 lettre = "0.8"

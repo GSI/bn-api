@@ -13,6 +13,7 @@ extern crate chrono;
 extern crate diesel;
 extern crate dotenv;
 extern crate futures;
+extern crate globee;
 extern crate itertools;
 extern crate jsonwebtoken as jwt;
 extern crate lettre;

@@ -6,29 +6,38 @@
 #[macro_use]
 extern crate derive_error;
 extern crate reqwest;
+#[macro_use]
 extern crate serde_json;
 #[macro_use]
 extern crate serde_derive;
 extern crate url;
+#[macro_use]
+extern crate logging;
+extern crate log;
 
+use log::Level::Debug;
+use reqwest::header::HeaderName;
+use reqwest::StatusCode;
 use std::error::Error as StdError;
 use std::fmt;
 use url::Url;
 
 pub struct GlobeeClient {
     key: String,
-    secret: String,
     base_url: String,
 }
 
 impl GlobeeClient {
     /// Creates a new Globee client
     /// base_url: Live: https://globee.com/payment-api/v1/, test: https://test.globee.com/payment-api/v1/
-    pub fn new(key: String, secret: String, base_url: String) -> GlobeeClient {
+    pub fn new(key: String, base_url: String) -> GlobeeClient {
         GlobeeClient {
             key,
-            secret,
-            base_url,
+            base_url: if base_url.ends_with("/") {
+                base_url
+            } else {
+                format!("{}/", base_url)
+            },
         }
     }
 
@@ -37,8 +46,27 @@ impl GlobeeClient {
         request: PaymentRequest,
     ) -> Result<PaymentResponse, GlobeeError> {
         let client = reqwest::Client::new();
-        let mut resp = client.post(&self.base_url).send()?;
-        let value: GlobeeResponse<PaymentResponse> = resp.json()?;
+        jlog!(Debug, "Sending payment request to Globee", {
+            "request": &request
+        });
+
+        let mut resp = client
+            .post(&format!("{}payment-request", &self.base_url))
+            .header(HeaderName::from_static("x-auth-key"), self.key.as_str())
+            .json(&request)
+            .send()?;
+        let status = resp.status();
+        if status != StatusCode::UNPROCESSABLE_ENTITY && status != StatusCode::OK {
+            return Err(resp.error_for_status().err().map(|e| e.into()).unwrap_or(
+                GlobeeError::UnexpectedResponseError(format!(
+                    "Unexpected status code from Globee: {}",
+                    status
+                )),
+            ));
+        };
+        let value: serde_json::Value = resp.json()?;
+        jlog!(Debug, "Response from Globee", { "response": &value });
+        let value: GlobeeResponse<PaymentResponse> = serde_json::from_value(value)?;
 
         if value.success {
             match value.data {
@@ -64,6 +92,7 @@ pub enum GlobeeError {
     HttpError(reqwest::Error),
     #[error(msg_embedded, no_from, non_std)]
     UnexpectedResponseError(String),
+    DeserializationError(serde_json::Error),
 }
 
 #[derive(Deserialize)]
@@ -77,29 +106,60 @@ struct GlobeeResponse<T> {
 pub struct PaymentRequest {
     /// The total amount in the invoice currency.
     // TODO: Replace with numeric type
-    pub total: String,
+    total: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub currency: Option<String>,
     /// A reference or custom identifier that you can use to link the payment back to your system.
+
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub custom_payment_id: Option<String>,
     /// Passthrough data that will be returned in the IPN callback.
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub callback_data: Option<String>,
     /// The customer making the payment
     pub customer: Customer,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub success_url: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub cancel_url: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub ipn_url: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub notification_email: Option<Email>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub confirmation_speed: Option<ConfirmationSpeed>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub custom_store_reference: Option<String>,
+}
+impl PaymentRequest {
+    pub fn new(total: f64, email: String) -> PaymentRequest {
+        PaymentRequest {
+            total: total.to_string(),
+            currency: None,
+            custom_payment_id: None,
+            callback_data: None,
+            customer: Customer {
+                name: None,
+                email: Email(email),
+            },
+            success_url: None,
+            cancel_url: None,
+            ipn_url: None,
+            notification_email: None,
+            confirmation_speed: None,
+            custom_store_reference: None,
+        }
+    }
 }
 
 #[derive(Deserialize)]
 pub struct PaymentResponse {
     pub id: String,
     pub status: String,
-    pub adjusted_total: Option<f64>,
+    pub adjusted_total: String,
     #[serde(flatten)]
     pub request: PaymentRequest,
+    pub redirect_url: String,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -116,6 +176,7 @@ pub struct Email(String);
 
 #[derive(Serialize, Deserialize)]
 pub struct Customer {
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub name: Option<String>,
     pub email: Email,
 }
