@@ -7,6 +7,7 @@ use domain_events::executor_future::ExecutorFuture;
 use domain_events::executors::marketing_contacts::{
     BulkEventFanListImportExecutor, CreateEventListExecutor,
 };
+use domain_events::executors::process_payment_ipn::ProcessPaymentIPNExecutor;
 use domain_events::executors::send_communication::SendCommunicationExecutor;
 use std::borrow::Borrow;
 use std::collections::HashMap;
@@ -59,7 +60,7 @@ impl DomainActionRouter {
                     Box::new(BulkEventFanListImportExecutor::new(conf))
                 }
                 MarketingContactsCreateEventList => Box::new(CreateEventListExecutor::new(conf)),
-                PaymentProviderIPN => panic!("Not implemented"),
+                PaymentProviderIPN => Box::new(ProcessPaymentIPNExecutor::new()),
                 //
                 // DO NOT add
                 // _ =>
@@ -80,5 +81,8 @@ impl DomainActionRouter {
             find_executor(MarketingContactsBulkEventFanListImport),
         )
         .expect("Configuration error");
+
+        self.add_executor(PaymentProviderIPN, find_executor(PaymentProviderIPN))
+            .expect("Configuration error");
     }
 }

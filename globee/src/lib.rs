@@ -26,24 +26,24 @@ use url::Url;
 
 #[derive(Serialize, Deserialize)]
 pub struct GlobeeIpnRequest {
-    id: Option<String>,
-    status: Option<String>,
-    total: Option<String>,
-    adjusted_total: Option<String>,
-    currency: Option<String>,
-    custom_payment_id: Option<String>,
-    custom_store_reference: Option<String>,
-    callback_data: Option<String>,
-    customer: Customer,
-    payment_details: PaymentDetails,
-    redirect_url: Option<String>,
-    success_url: Option<String>,
-    cancel_url: Option<String>,
-    ipn_url: Option<String>,
-    notification_email: Option<String>,
-    confirmation_speed: Option<String>,
-    expires_at: Option<String>,
-    created_at: Option<String>,
+    pub id: Option<String>,
+    pub status: Option<String>,
+    pub total: Option<String>,
+    pub adjusted_total: Option<String>,
+    pub currency: Option<String>,
+    pub custom_payment_id: Option<String>,
+    pub custom_store_reference: Option<String>,
+    pub callback_data: Option<String>,
+    pub customer: Customer,
+    pub payment_details: PaymentDetails,
+    pub redirect_url: Option<String>,
+    pub success_url: Option<String>,
+    pub cancel_url: Option<String>,
+    pub ipn_url: Option<String>,
+    pub notification_email: Option<String>,
+    pub confirmation_speed: Option<String>,
+    pub expires_at: Option<String>,
+    pub created_at: Option<String>,
 }
 
 pub struct GlobeeClient {
@@ -189,7 +189,7 @@ pub struct PaymentResponse {
     #[serde(flatten)]
     pub request: PaymentRequest,
     pub redirect_url: String,
-    pub pyament_details: PaymentDetails,
+    pub payment_details: PaymentDetails,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -213,9 +213,9 @@ pub struct Customer {
 
 #[derive(Serialize, Deserialize)]
 pub struct PaymentDetails {
-    pub currency: String,
-    pub received_amount: String,
-    pub received_difference: String,
+    pub currency: Option<String>,
+    pub received_amount: Option<String>,
+    pub received_difference: Option<String>,
 }
 
 #[derive(Deserialize, Debug)]

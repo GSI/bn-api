@@ -83,6 +83,7 @@ string_enum! { DomainEventTypes [
     PaymentCreated,
     PaymentCompleted,
     PaymentRefund,
+    PaymentProviderIPN,
     PaymentMethodCreated,
     PaymentMethodUpdated,
     UserRegistration,

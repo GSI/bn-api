@@ -603,7 +603,7 @@ fn auth_then_complete(
     let charge_result = client.complete_authed_charge(&auth_result.id)?;
     info!("CART: Completing payment on order");
     info!("charge_result:{:?}", charge_result);
-    match payment.mark_complete(charge_result.to_json()?, auth_user.id(), connection) {
+    match payment.mark_complete(charge_result.to_json()?, Some(auth_user.id()), connection) {
         Ok(_) => {
             let order = Order::find(order.id, connection)?;
             Ok(HttpResponse::Ok().json(json!(order.for_display(connection)?)))

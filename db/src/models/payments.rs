@@ -49,6 +49,13 @@ impl Payment {
         }
     }
 
+    pub fn find(id: Uuid, conn: &PgConnection) -> Result<Payment, DatabaseError> {
+        payments::table
+            .filter(payments::id.eq(id))
+            .first(conn)
+            .to_db_error(ErrorCode::QueryError, "Could not find payment")
+    }
+
     pub fn log_refund(
         &self,
         current_user_id: Uuid,
@@ -80,12 +87,36 @@ impl Payment {
         Ok(())
     }
 
+    pub fn add_ipn(
+        &self,
+        raw_data: serde_json::Value,
+        current_user_id: Option<Uuid>,
+        conn: &PgConnection,
+    ) -> Result<(), DatabaseError> {
+        DomainEvent::create(
+            DomainEventTypes::PaymentProviderIPN,
+            "Payment IPN received".to_string(),
+            Tables::Payments,
+            Some(self.id),
+            current_user_id,
+            Some(raw_data),
+        )
+        .commit(conn)?;
+
+        Ok(())
+    }
+
     pub fn mark_complete(
         &self,
         raw_data: serde_json::Value,
-        current_user_id: Uuid,
+        current_user_id: Option<Uuid>,
         conn: &PgConnection,
     ) -> Result<(), DatabaseError> {
+        if self.status == PaymentStatus::Completed {
+            return DatabaseError::business_process_error(
+                "Payment has already been marked complete",
+            );
+        }
         diesel::update(
             payments::table.filter(
                 payments::id
@@ -109,7 +140,7 @@ impl Payment {
             "Payment was completed".to_string(),
             Tables::Payments,
             Some(self.id),
-            Some(current_user_id),
+            current_user_id,
             Some(raw_data),
         )
         .commit(conn)?;
