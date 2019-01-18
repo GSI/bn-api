@@ -13,14 +13,38 @@ extern crate serde_derive;
 extern crate url;
 #[macro_use]
 extern crate logging;
+extern crate chrono;
 extern crate log;
 
+use chrono::prelude::*;
 use log::Level::Debug;
 use reqwest::header::HeaderName;
 use reqwest::StatusCode;
 use std::error::Error as StdError;
 use std::fmt;
 use url::Url;
+
+#[derive(Serialize, Deserialize)]
+pub struct GlobeeIpnRequest {
+    id: Option<String>,
+    status: Option<String>,
+    total: Option<String>,
+    adjusted_total: Option<String>,
+    currency: Option<String>,
+    custom_payment_id: Option<String>,
+    custom_store_reference: Option<String>,
+    callback_data: Option<String>,
+    customer: Customer,
+    payment_details: PaymentDetails,
+    redirect_url: Option<String>,
+    success_url: Option<String>,
+    cancel_url: Option<String>,
+    ipn_url: Option<String>,
+    notification_email: Option<String>,
+    confirmation_speed: Option<String>,
+    expires_at: Option<String>,
+    created_at: Option<String>,
+}
 
 pub struct GlobeeClient {
     key: String,
@@ -165,6 +189,7 @@ pub struct PaymentResponse {
     #[serde(flatten)]
     pub request: PaymentRequest,
     pub redirect_url: String,
+    pub pyament_details: PaymentDetails,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -184,6 +209,13 @@ pub struct Customer {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub name: Option<String>,
     pub email: Email,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct PaymentDetails {
+    pub currency: String,
+    pub received_amount: String,
+    pub received_difference: String,
 }
 
 #[derive(Deserialize, Debug)]

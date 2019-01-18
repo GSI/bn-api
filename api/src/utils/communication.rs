@@ -106,8 +106,8 @@ impl Communication {
                 CommunicationType::Sms => Some(CommunicationChannelType::Sms),
             },
             json!(self),
-            "event".to_string(),
-            Uuid::new_v4(),
+            None,
+            None,
             Utc::now().naive_utc(),
             (Utc::now().naive_utc())
                 .checked_add_signed(Duration::days(1))

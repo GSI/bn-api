@@ -6,6 +6,7 @@ pub mod comps;
 pub mod events;
 pub mod external;
 pub mod holds;
+pub mod ipns;
 pub mod orders;
 pub mod organization_invites;
 pub mod organizations;

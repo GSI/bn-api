@@ -96,7 +96,9 @@ string_enum! { DomainActionTypes [
     Communication,
     // Marketing Contacts
     MarketingContactsCreateEventList,
-    MarketingContactsBulkEventFanListImport
+    MarketingContactsBulkEventFanListImport,
+    PaymentProviderIPN
+
 ]}
 string_enum! { DomainActionStatus [Pending, RetriesExceeded, Errored, Success, Cancelled]}
 string_enum! { EventStatus [Draft,Closed,Published,Offline]}

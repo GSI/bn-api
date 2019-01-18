@@ -25,8 +25,8 @@ fn has_pending_action() {
         DomainActionTypes::MarketingContactsBulkEventFanListImport,
         None,
         json!(Vec::<u8>::new()),
-        Tables::Events.table_name(),
-        id,
+        Some(Tables::Events.table_name()),
+        Some(id),
         Utc::now()
             .naive_utc()
             .checked_add_signed(Duration::hours(1))

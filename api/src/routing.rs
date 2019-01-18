@@ -110,6 +110,9 @@ pub fn routes(app: &mut CorsBuilder<AppState>) -> App<AppState> {
         r.method(Method::POST)
             .with(organization_invites::accept_request);
     })
+    .resource("/ipns/globee", |r| {
+        r.method(Method::POST).with(ipns::globee);
+    })
     .resource("/holds/{id}/comps", |r| {
         r.method(Method::GET).with(comps::index);
         r.method(Method::POST).with(comps::create);

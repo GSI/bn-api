@@ -12,3 +12,4 @@ url= "1.7.2"
 derive-error="0.0.4"
 logging={path="../logging"}
 log = "0.4"
+chrono = "0.4.6"

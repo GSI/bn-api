@@ -59,6 +59,7 @@ impl DomainActionRouter {
                     Box::new(BulkEventFanListImportExecutor::new(conf))
                 }
                 MarketingContactsCreateEventList => Box::new(CreateEventListExecutor::new(conf)),
+                PaymentProviderIPN => panic!("Not implemented"),
                 //
                 // DO NOT add
                 // _ =>
