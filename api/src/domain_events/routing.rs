@@ -7,7 +7,7 @@ use domain_events::executor_future::ExecutorFuture;
 use domain_events::executors::marketing_contacts::{
     BulkEventFanListImportExecutor, CreateEventListExecutor,
 };
-use domain_events::send_communication::SendCommunicationExecutor;
+use domain_events::executors::send_communication::SendCommunicationExecutor;
 use std::borrow::Borrow;
 use std::collections::HashMap;
 

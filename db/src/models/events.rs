@@ -172,7 +172,7 @@ pub struct EventLocalizedTimes {
     pub door_time: Option<DateTime<Tz>>,
 }
 
-#[derive(Debug, Default, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 pub struct EventLocalizedTimeStrings {
     pub event_start: Option<String>,
     pub event_end: Option<String>,
@@ -1082,9 +1082,12 @@ impl Event {
     }
 
     pub fn for_display(self, conn: &PgConnection) -> Result<DisplayEvent, DatabaseError> {
-        let venue: Option<DisplayVenue> = self.venue(conn)?.and_then(|venue| Some(venue.into()));
+        let venue = self.venue(conn)?;
+        let display_venue: Option<DisplayVenue> =
+            self.venue(conn)?.and_then(|venue| Some(venue.into()));
         let artists = self.artists(conn)?;
 
+        let localized_times = self.get_all_localized_time_strings(&venue);
         Ok(DisplayEvent {
             id: self.id,
             name: self.name,
@@ -1094,13 +1097,14 @@ impl Event {
             additional_info: self.additional_info,
             top_line_info: self.top_line_info,
             artists,
-            venue,
+            venue: display_venue,
             max_ticket_price: self.max_ticket_price,
             min_ticket_price: self.min_ticket_price,
             video_url: self.video_url,
             is_external: self.is_external,
             external_url: self.external_url,
             override_status: self.override_status,
+            localized_times,
         })
     }
 }
@@ -1122,6 +1126,7 @@ pub struct DisplayEvent {
     pub is_external: bool,
     pub external_url: Option<String>,
     pub override_status: Option<EventOverrideStatus>,
+    pub localized_times: EventLocalizedTimeStrings,
 }
 
 #[derive(Debug, PartialEq, Serialize, Deserialize)]

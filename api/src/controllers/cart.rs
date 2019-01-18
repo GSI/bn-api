@@ -76,9 +76,8 @@ pub fn update_cart(
 
     for order_item in &order_items {
         if !Dbticket_types::is_event_not_draft(&order_item.ticket_type_id, connection)? {
-            return Ok(
-                HttpResponse::BadRequest().json(json!({"error": "Event is invalid.".to_string()}))
-            );
+            return Ok(HttpResponse::BadRequest()
+                .json(json!({"error": "Event has not been published.".to_string()})));
         }
     }
     cart.update_quantities(&order_items, box_office_pricing, false, connection)?;
@@ -136,9 +135,8 @@ pub fn replace_cart(
 
     for order_item in &order_items {
         if !Dbticket_types::is_event_not_draft(&order_item.ticket_type_id, connection)? {
-            return Ok(
-                HttpResponse::BadRequest().json(json!({"error": "Event is invalid.".to_string()}))
-            );
+            return Ok(HttpResponse::BadRequest()
+                .json(json!({"error": "Event has not been published.".to_string()})));
         }
     }
 

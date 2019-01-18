@@ -16,8 +16,6 @@ use std::collections::HashMap;
 use utils::marketing_contacts;
 use uuid::Uuid;
 
-const LOG_TARGET: &'static str = "bigneon::controllers::events";
-
 #[derive(Deserialize)]
 pub struct SearchParameters {
     #[serde(default, deserialize_with = "deserialize_unless_blank")]
@@ -355,6 +353,7 @@ pub fn show(
         event_start: Option<NaiveDateTime>,
         door_time: Option<NaiveDateTime>,
         event_end: Option<NaiveDateTime>,
+        cancelled_at: Option<NaiveDateTime>,
         fee_in_cents: i64,
         status: EventStatus,
         publish_date: Option<NaiveDateTime>,
@@ -388,6 +387,7 @@ pub fn show(
         event_start: event.event_start,
         door_time: event.door_time,
         event_end: event.event_end,
+        cancelled_at: event.cancelled_at,
         fee_in_cents: event.fee_in_cents,
         status: event.status,
         publish_date: event.publish_date,
@@ -426,17 +426,7 @@ pub fn publish(
 
     // TODO: Remove domain action and replace with domain event EventPublished
     //       once domain events are ready #DomainEvents
-    let _ = marketing_contacts::BulkEventFanListImportAction::new(event.id)
-        .enqueue(conn)
-        .or_else(|err| {
-            jlog!(
-                log::Level::Error,
-                LOG_TARGET,
-                "Failure when enqueing domain action MarketContactsCreateEventList",
-                { "innerError": format!("{}", err) }
-            );
-            Err(err)
-        });
+    let _ = marketing_contacts::CreateEventMarketingListAction::new(event.id).enqueue(conn)?;
 
     Ok(HttpResponse::Ok().finish())
 }

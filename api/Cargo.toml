@@ -1,6 +1,6 @@
 [package]
 name = "bigneon_api"
-version = "0.1.99"
+version = "0.1.104"
 authors = ["CjS77"]
 license = "BSD-3"
 repository = "https://github.com/big-neon/bn-api/"

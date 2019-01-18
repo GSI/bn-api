@@ -93,44 +93,48 @@ impl BulkEventFanListImportExecutor {
             }
         };
 
-        let (fans, _total) = event.search_fans(None, None, None, None, None, conn)?;
+        let (fans, total) = event.search_fans(None, None, None, None, None, conn)?;
 
-        let contacts = fans
-            .into_iter()
-            .filter(|fan| fan.email.is_some())
-            .map(|fan| SGContact::new(fan.email.unwrap(), fan.first_name, fan.last_name))
-            .collect::<Vec<SGContact>>();
+        if total > 0 {
+            let contacts = fans
+                .into_iter()
+                .filter(|fan| fan.email.is_some())
+                .map(|fan| SGContact::new(fan.email.unwrap(), fan.first_name, fan.last_name))
+                .collect::<Vec<SGContact>>();
 
-        let result = SGContact::create_many(&api_key, contacts)?;
+            let result = SGContact::create_many(&api_key, contacts)?;
 
-        if event.sendgrid_list_id.is_none() {
-            return Err(ApplicationError::new(
-                "Event has no sendgrid list id. Cannot add recipients to list".to_string(),
-            )
-            .into());
+            if event.sendgrid_list_id.is_none() {
+                return Err(ApplicationError::new(
+                    "Event has no sendgrid list id. Cannot add recipients to list".to_string(),
+                )
+                .into());
+            }
+
+            let sg_list_id = event.sendgrid_list_id.unwrap();
+            jlog!(Debug, LOG_TARGET, &format!("Fetching sendgrid list {}", sg_list_id), {
+                "action_id": action.id,
+                "sendgrid_list_id": sg_list_id,
+                "event_id": event.id,
+                "organization_id": event.organization_id,
+            });
+
+            let sg_list = SGContactList::get_by_id(&api_key, sg_list_id as u64)?;
+
+            if !result.persisted_recipients.is_empty() {
+                sg_list.add_recipients(&api_key, result.persisted_recipients)?;
+
+                jlog!(Info, LOG_TARGET, &format!("Added {} recipients to sendgrid list '{}'", result.new_count, sg_list.id), {
+                    "action_id": action.id,
+                    "error_count": result.error_count,
+                    // "error_emails": result.errors.iter().map(|e| e.error_indices).flatten().
+                    "new_count": result.new_count,
+                    "sendgrid_list_id": sg_list.id,
+                    "event_id": event.id,
+                    "organization_id": event.organization_id,
+                });
+            }
         }
-
-        let sg_list_id = event.sendgrid_list_id.unwrap();
-        jlog!(Debug, LOG_TARGET, &format!("Fetching sendgrid list {}", sg_list_id), {
-            "action_id": action.id,
-            "sendgrid_list_id": sg_list_id,
-            "event_id": event.id,
-            "organization_id": event.organization_id,
-        });
-
-        let sg_list = SGContactList::get_by_id(&api_key, sg_list_id as u64)?;
-
-        sg_list.add_recipients(&api_key, result.persisted_recipients)?;
-
-        jlog!(Info, LOG_TARGET, &format!("Added {} recipients to sendgrid list '{}'", result.new_count, sg_list.id), {
-            "action_id": action.id,
-            "error_count": result.error_count,
-            // "error_emails": result.errors.iter().map(|e| e.error_indices).flatten().
-            "new_count": result.new_count,
-            "sendgrid_list_id": sg_list.id,
-            "event_id": event.id,
-            "organization_id": event.organization_id,
-        });
 
         if self.is_event_on_sale(&event) {
             jlog!(Info, LOG_TARGET, &format!("Enqueuing delayed domain action for event={}", event.id), {
